@@ -1,446 +1,89 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="my" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📺 IPTV Player</title>
-    <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
-    <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
+    <title>📄 PDF Share - ရိုးရိုးလွယ်လွယ်</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #000;
-            color: white;
-            overflow-x: hidden;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        h1 { 
-            background: linear-gradient(45deg, #ff4757, #ff6b7a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 1.8em;
-        }
-        .channels {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            max-width: 100%;
-            overflow-x: auto;
-            padding-bottom: 10px;
-        }
-        .channel-btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 25px;
-            background: rgba(255,255,255,0.1);
-            color: white;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-        .channel-btn:hover, .channel-btn.active {
-            background: #ff4757;
-            box-shadow: 0 5px 15px rgba(255,71,87,0.4);
-            transform: translateY(-2px);
-        }
-        .player-container {
-            flex: 1;
-            background: #111;
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .video-js { 
-            width: 100%; 
-            height: 100%; 
-            min-height: 400px; 
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-            background: rgba(0,0,0,0.5);
-            padding: 15px;
-            border-radius: 15px;
-        }
-        .control-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        input[type="text"] {
-            flex: 1;
-            max-width: 350px;
-            padding: 12px 20px;
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 25px;
-            background: rgba(255,255,255,0.1);
-            color: white;
-            font-size: 16px;
-        }
-        input::placeholder { color: rgba(255,255,255,0.6); }
-        
-        /* Play/Stop Buttons */
-        .play-btn, .stop-btn {
-            width: 60px;
-            height: 60px;
-            border: none;
-            border-radius: 50%;
-            font-size: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .play-btn {
-            background: #00d4aa;
-            color: white;
-        }
-        .play-btn:hover { background: #00b894; transform: scale(1.1); }
-        .play-btn.playing {
-            background: #ff4757;
-            animation: pulse 1s infinite;
-        }
-        .stop-btn {
-            background: #636e72;
-            color: white;
-        }
-        .stop-btn:hover { background: #2d3436; transform: scale(1.1); }
-        
-        .action-btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 25px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .play-action { background: #00d4aa; color: white; }
-        .play-action:hover { background: #00b894; transform: translateY(-2px); }
-        .stop-action { background: #ff4757; color: white; }
-        .stop-action:hover { background: #ff3742; transform: translateY(-2px); }
-        .fullscreen-btn { 
-            background: #6c5ce7; 
-            padding: 12px 20px;
-            color: white;
-        }
-        .fullscreen-btn:hover { background: #5a4fcf; transform: translateY(-2px); }
-        
-        .status {
-            padding: 10px 20px;
-            background: rgba(0,0,0,0.7);
-            border-radius: 20px;
-            font-size: 14px;
-            margin-left: auto;
-            min-width: 150px;
-            text-align: center;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        @media (max-width: 768px) {
-            .channels { justify-content: center; }
-            .controls { flex-direction: column; align-items: stretch; gap: 15px; }
-            input[type="text"] { max-width: 100%; }
-            .control-group { justify-content: center; }
-        }
+        body { font-family: 'Noto Sans Myanmar', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-tv"></i> IPTV Player</h1>
-            <div class="status" id="status">Ready</div>
-        </div>
-
-        <div class="channels" id="channels"></div>
-
-        <div class="player-container">
-            <video
-                id="player"
-                class="video-js vjs-big-play-centered"
-                controls
-                preload="auto"
-                data-setup='{"responsive": true, "fluid": true}'>
-            </video>
-        </div>
-
-        <div class="controls">
-            <div class="control-group">
-                <!-- Big Play/Stop Buttons -->
-                <button class="play-btn" id="playBtn" title="Play/Pause">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button class="stop-btn" id="stopBtn" title="Stop">
-                    <i class="fas fa-stop"></i>
-                </button>
-                
-                <!-- Action Buttons -->
-                <button class="action-btn play-action" onclick="playChannel()">
-                    <i class="fas fa-play"></i> Play
-                </button>
-                <button class="action-btn stop-action" onclick="stopChannel()">
-                    <i class="fas fa-stop"></i> Stop
-                </button>
+<body class="min-h-screen gradient-bg">
+    <div class="container mx-auto px-4 py-12">
+        <!-- Header -->
+        <div class="text-center mb-16">
+            <div class="w-24 h-24 bg-white/20 rounded-3xl mx-auto mb-8 flex items-center justify-center">
+                <i class="fas fa-file-pdf text-4xl text-red-400"></i>
             </div>
-            
-            <div style="display: flex; gap: 10px; flex: 1; max-width: 500px;">
-                <input type="text" id="m3u8Input" placeholder="M3U8 URL ထည့်ပါ... (Enter)">
-                <button class="action-btn play-action" onclick="loadCustom()" style="padding: 12px 16px;">
-                    <i class="fas fa-play"></i>
-                </button>
-            </div>
-            
-            <button class="fullscreen-btn" onclick="toggleFullscreen()" title="F">
-                <i class="fas fa-expand"></i> Fullscreen
-            </button>
-        </div>
-    </div>
-
-    <script>
-        const channels = [
-            { name: 'Demo TV 1', url: 'http://iptv.prosto.tv:7000/ch163/video.m3u8' },
-            { name: 'Demo TV 2', url: 'http://iptv.prosto.tv:7000/ch164/video.m3u8' },
-            { name: 'Demo TV 3', url: 'http://iptv.prosto.tv:7000/ch186/video.m3u8' },
-            { name: 'MMTV', url: 'http://iptv.prosto.tv:7000/ch196/video.m3u8' },
-            { name: 'Channel 7', url: 'http://iptv.prosto.tv:7000/ch200/video.m3u8' },
-            { name: 'SkyNet', url: 'http://iptv.prosto.tv:7000/ch169/video.m3u8' },
-            { name: 'MRTV', url: 'http://iptv.prosto.tv:7000/ch1543/video.m3u8' }
-        ];
-
-        let player;
-        let currentChannelIndex = 0;
-
-        // Create channel buttons
-        function createChannels() {
-            const container = document.getElementById('channels');
-            container.innerHTML = channels.map((ch, i) => 
-                `<button class="channel-btn ${i===0?'active':''}" onclick="selectChannel(${i})">
-                    ${ch.name}
-                </button>`
-            ).join('');
-        }
-
-        // Select channel
-        function selectChannel(index) {
-            currentChannelIndex = index;
-            const channel = channels[index];
-            updateStatus(`Selected: ${channel.name}`);
-            
-            document.querySelector('.channel-btn.active')?.classList.remove('active');
-            event.target.classList.add('active');
-        }
-
-        // Play current channel
-        function playChannel() {
-            const channel = channels[currentChannelIndex];
-            if (!channel) {
-                updateStatus('No channel selected');
-                return;
-            }
-            
-            updateStatus(`Playing ${channel.name}...`);
-            player.src({
-                src: channel.url,
-                type: 'application/x-mpegURL'
-            });
-            player.play();
-        }
-
-        // Stop channel
-        function stopChannel() {
-            player.pause();
-            player.src(''); // Clear source
-            updateStatus('Stopped');
-            document.getElementById('playBtn').classList.remove('playing');
-        }
-
-        // Load custom M3U8
-        function loadCustom() {
-            const url = document.getElementById('m3u8Input').value.trim();
-            if (!url) {
-                updateStatus('Enter URL first');
-                return;
-            }
-            
-            updateStatus('Loading custom URL...');
-            player.src({ src: url, type: 'application/x-mpegURL' });
-            player.play();
-        }
-
-        // Fullscreen
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-            }
-        }
-
-        // Update status
-        function updateStatus(msg) {
-            document.getElementById('status').textContent = msg;
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            player = videojs('player', {
-                fluid: true,
-                responsive: true,
-                playbackRates: [0.5, 1, 1.5, 2]
-            });
-
-            // Play/Stop buttons
-            document.getElementById('playBtn').onclick = () => {
-                if (player.paused()) {
-                    playChannel();
-                } else {
-                    player.pause();
-                }
-            };
-
-            document.getElementById('stopBtn').onclick = stopChannel;
-
-            // Player events
-            player.on('loadstart', () => updateStatus('🔄 Loading...'));
-            player.on('playing', () => {
-                updateStatus('▶️ Playing');
-                document.getElementById('playBtn').classList.add('playing');
-                document.getElementById('playBtn').innerHTML = '<i class="fas fa-pause"></i>';
-            });
-            player.on('pause', () => {
-                document.getElementById('playBtn').classList.remove('playing');
-                document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
-            });
-            player.on('error', () => updateStatus('❌ Error - Check URL'));
-            player.on('waiting', () => updateStatus('⏳ Buffering...'));
-            player.on('ended', () => updateStatus('✅ Ended'));
-
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                switch(e.code) {
-                    case 'Space':
-                        e.preventDefault();
-                        document.getElementById('playBtn').click();
-                        break;
-                    case 'KeyF': toggleFullscreen(); break;
-                    case 'Enter':
-                        if (document.activeElement.id === 'm3u8Input') loadCustom();
-                        break;
-                    case 'KeyP': playChannel(); break;
-                    case 'KeyS': stopChannel(); break;
-                }
-            });
-
-            createChannels();
-            selectChannel(0);
-        });
-    </script>
-</body>
-</html>
+            <h1 class="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-2xl">
+                PDF Share
+            </h1>
+            <p class="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
+                PDF ဖိုင်တွေကို လွယ်လွယ်ကူကူ တင်ပြီး မျှဝေပါ
+            </p>
         </div>
 
-        <!-- Channels Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h3><i class="fas fa-list"></i> Channels</h3>
-                <button class="close-sidebar" id="closeSidebar"><i class="fas fa-times"></i></button>
-            </div>
-            
-            <div class="categories">
-                <button class="category-btn active" data-cat="all">All Channels</button>
-                <button class="category-btn" data-cat="news">News</button>
-                <button class="category-btn" data-cat="entertainment">Entertainment</button>
-                <button class="category-btn" data-cat="sports">Sports</button>
-            </div>
-
-            <div class="channels-list" id="channelsList"></div>
-        </div>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Featured Channel -->
-            <div class="hero-section">
-                <div class="hero-info">
-                    <div class="hero-badge">🔴 LIVE</div>
-                    <h1 id="heroTitle">Select a Channel</h1>
-                    <p id="heroDesc">Choose your favorite channel to start watching</p>
+        <!-- Upload Section -->
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-white/20 mb-8">
+                <div class="text-center">
+                    <i class="fas fa-cloud-upload-alt text-6xl text-white mb-6 opacity-80"></i>
+                    <h2 class="text-3xl font-bold text-white mb-4">PDF တင်ပါ</h2>
+                    <p class="text-white/80 mb-8">10MB အထိ ပဲဖဒ် ဖိုင်တွေ တင်လို့ရပါတယ်</p>
+                    
+                    <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
+                        <div class="flex items-center justify-center w-full">
+                            <label for="pdfFile" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-white/30 rounded-2xl cursor-pointer hover:border-white/50 transition-all duration-300 group p-6">
+                                <i class="fas fa-file-pdf text-5xl text-red-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                                <p class="text-lg font-medium text-white group-hover:text-white">
+                                    <span class="hidden sm:inline">PDF ဖိုင်ကို ဒီနေရာမှာ ဆွဲချပါ</span>
+                                    <span class="sm:hidden">PDF ရွေးပါ</span>
+                                </p>
+                                <input id="pdfFile" name="file" type="file" accept=".pdf" class="hidden" required>
+                            </label>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-8 rounded-2xl text-xl shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition-all duration-300">
+                            <i class="fas fa-rocket mr-2"></i> မျှဝေလင့်ခ် ရယူရန်
+                        </button>
+                    </form>
                 </div>
             </div>
 
-            <!-- Player -->
-            <div class="player-section">
-                <video id="mainPlayer" class="main-player" controls preload="metadata">
-                    Your browser doesn't support video playback
-                </video>
-                
-                <div class="player-controls">
-                    <div class="now-playing">
-                        <span id="currentChannelName">Channel Name</span>
-                        <span id="liveIndicator">● LIVE</span>
+            <!-- Share Link Input -->
+            <div id="shareSection" class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-white/20 hidden">
+                <div class="text-center">
+                    <i class="fas fa-link text-5xl text-green-400 mb-6"></i>
+                    <h3 class="text-2xl font-bold text-white mb-4">မျှဝေလင့်ခ် ရပြီ!</h3>
+                    <div class="relative mb-6">
+                        <input id="shareLink" type="text" readonly class="w-full px-6 py-4 bg-white/20 border-2 border-white/30 rounded-2xl text-lg font-mono text-white text-center focus:outline-none focus:border-white/50" placeholder="loading...">
+                        <button onclick="copyLink()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-xl transition-all duration-200 hover:scale-110">
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
-                    <div class="player-buttons">
-                        <button id="theaterBtn" class="btn-theater"><i class="fas fa-expand-arrows-alt"></i></button>
-                        <button id="pipBtn" class="btn-pip"><i class="fas fa-external-link-alt"></i></button>
+                    <div class="flex gap-3 justify-center flex-wrap">
+                        <a id="whatsappBtn" href="#" target="_blank" class="group">
+                            <i class="fab fa-whatsapp text-2xl bg-green-500 text-white p-3 rounded-2xl group-hover:bg-green-600 hover:scale-110 transition-all duration-200"></i>
+                        </a>
+                        <a id="telegramBtn" href="#" target="_blank" class="group">
+                            <i class="fab fa-telegram text-2xl bg-blue-500 text-white p-3 rounded-2xl group-hover:bg-blue-600 hover:scale-110 transition-all duration-200"></i>
+                        </a>
+                        <a id="copyBtn" onclick="copyLink()" class="group cursor-pointer">
+                            <i class="fas fa-copy text-2xl bg-gray-600 text-white p-3 rounded-2xl group-hover:bg-gray-700 hover:scale-110 transition-all duration-200"></i>
+                        </a>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Quick Controls -->
-            <div class="quick-controls">
-                <div class="favorites" id="favorites">
-                    <i class="fas fa-star"></i> Favorites
-                </div>
-                <input type="text" id="directUrl" placeholder="📺 Direct M3U8 URL">
-                <button id="loadDirect">▶️ Load</button>
-            </div>
-
-            <!-- Channel Grid -->
-            <div class="channels-grid" id="channelsGrid">
-                <!-- Dynamic content -->
-            </div>
-        </main>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
-            <button onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        <!-- Footer -->
+        <div class="text-center mt-20 pt-12 border-t border-white/10">
+            <p class="text-white/60">Powered by <strong>Cloudflare Pages</strong> + GitHub</p>
         </div>
     </div>
 
-    <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="script.js"></script>
 </body>
 </html>
