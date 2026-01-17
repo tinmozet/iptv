@@ -2,9 +2,9 @@ let player;
 let currentSource = '';
 
 const channels = {
-    'CHANNEL1_M3U8': 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
-    'CHANNEL2_M3U8': 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-    'CHANNEL3_M3U8': 'https://player.vimeo.com/external/441578664.sd.mp4?m=1609588380'
+    'CHANNEL1_M3U8': 'http://iptv.prosto.tv:7000/ch163/video.m3u8',
+    'CHANNEL2_M3U8': 'http://iptv.prosto.tv:7000/ch164/video.m3u8',
+    'CHANNEL3_M3U8': 'http://iptv.prosto.tv:7000/ch165/video.m3u8'
 };
 
 // Initialize Video.js
