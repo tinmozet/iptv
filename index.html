@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Links Directory</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-link"></i> My Links</h1>
+            <p>🚀 အကုန်လုံး တစ်နေရာတည်း</p>
+        </header>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Search links or categories...">
+            <button id="searchBtn"><i class="fas fa-search"></i></button>
+        </div>
+
+        <div class="categories" id="categoriesContainer">
+            <!-- Links will be loaded here by JavaScript -->
+        </div>
+
+        <div class="stats" id="stats">
+            <span id="totalLinks">0</span> links | 
+            <span id="totalCategories">0</span> categories
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
