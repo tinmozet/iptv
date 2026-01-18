@@ -1,39 +1,126 @@
-class PremiumIPTV {
+class LinksDirectory {
     constructor() {
-        this.player = null;
-        this.channels = [
-            { id: 'mmtv', name: 'MMTV HD', category: 'news', logo: '📺', url: 'http://iptv.prosto.tv:7000/ch163/video.m3u8', status: 'live' },
-            { id: 'channel7', name: 'Channel 7 HD', category: 'entertainment', logo: '⭐', url: 'http://iptv.prosto.tv:7000/ch187/video.m3u8', status: 'live' },
-            { id: 'skynet', name: 'SkyNet News', category: 'news', logo: '📰', url: 'http://iptv.prosto.tv:7000/ch200/video.m3u8', status: 'live' },
-            { id: 'mrtv', name: 'MRTV 4', category: 'news', logo: '📻', url: 'http://iptv.prosto.tv:7000/ch205/video.m3u8', status: 'live' },
-            { id: 'mytel', name: 'Mytel TV', category: 'entertainment', logo: '📱', url: 'http://iptv.prosto.tv:7000/ch309/video.m3u8', status: 'live' },
-            { id: 'kbz', name: 'KBZ Pay TV', category: 'sports', logo: '⚽', url: 'http://iptv.prosto.tv:7000/ch436/video.m3u8', status: 'live' },
-            { id: 'ooredoo', name: 'Ooredoo TV', category: 'entertainment', logo: '🎬', url: 'http://iptv.prosto.tv:7000/ch2367/video.m3u8', status: 'live' }
-        ];
-        this.favorites = new Set();
+        this.linksData = [];
+        this.filteredLinks = [];
         this.init();
     }
 
     async init() {
-        await this.load();
-        this.createUI();
-        this.bindEvents();
-        this.loadFeaturedChannel();
+        await this.loadLinks();
+        this.renderCategories();
+        this.setupEventListeners();
+        this.updateStats();
     }
 
-    async load() {
-        document.getElementById('loadingScreen').style.opacity = '0';
-        setTimeout(() => document.getElementById('loadingScreen').style.display = 'none', 500);
+    async loadLinks() {
+        try {
+            const response = await fetch('data/links.json');
+            this.linksData = await response.json();
+            this.filteredLinks = [...this.linksData.categories];
+        } catch (error) {
+            console.error('Error loading links:', error);
+            document.getElementById('categoriesContainer').innerHTML = 
+                '<div class="error">❌ Failed to load links data</div>';
+        }
     }
 
-    createUI() {
-        this.renderChannels();
-        this.renderSidebar();
+    renderCategories() {
+        const container = document.getElementById('categoriesContainer');
+        container.innerHTML = '';
+
+        this.filteredLinks.forEach(category => {
+            const categoryElement = this.createCategoryElement(category);
+            container.appendChild(categoryElement);
+        });
     }
 
-    renderChannels() {
-        const grid = document.getElementById('channelsGrid');
-        grid.innerHTML = this.channels.map(channel => `
+    createCategoryElement(category) {
+        const div = document.createElement('div');
+        div.className = 'category';
+        div.style.borderTop = `5px solid ${category.color}`;
+        
+        div.innerHTML = `
+            <div class="category-header">
+                <span class="category-icon">${category.icon}</span>
+                <div class="category-title">${category.name}</div>
+            </div>
+            <div class="links-grid">
+                ${category.links.map(link => this.createLinkCard(link, category.color)).join('')}
+            </div>
+        `;
+
+        return div;
+    }
+
+    createLinkCard(link, color) {
+        return `
+            <div class="link-card" onclick="window.open('${link.url}', '_blank')">
+                <div class="link-name">${link.name}</div>
+                <div class="link-url">${this.formatUrl(link.url)}</div>
+                <div class="link-desc">${link.description}</div>
+            </div>
+        `;
+    }
+
+    formatUrl(url) {
+        try {
+            return new URL(url).hostname;
+        } catch {
+            return url;
+        }
+    }
+
+    setupEventListeners() {
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        searchInput.addEventListener('input', (e) => this.searchLinks(e.target.value));
+        searchBtn.addEventListener('click', () => this.searchLinks(searchInput.value));
+        
+        // Enter key support
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.searchLinks(searchInput.value);
+            }
+        });
+    }
+
+    searchLinks(query) {
+        const q = query.toLowerCase().trim();
+        
+        if (!q) {
+            this.filteredLinks = [...this.linksData.categories];
+        } else {
+            this.filteredLinks = this.linksData.categories
+                .map(category => ({
+                    ...category,
+                    links: category.links.filter(link => 
+                        link.name.toLowerCase().includes(q) ||
+                        link.description.toLowerCase().includes(q) ||
+                        link.url.toLowerCase().includes(q)
+                    )
+                }))
+                .filter(category => category.links.length > 0);
+        }
+        
+        this.renderCategories();
+        this.updateStats();
+    }
+
+    updateStats() {
+        const totalLinks = this.linksData.categories.reduce((sum, cat) => sum + cat.links.length, 0);
+        const visibleCategories = this.filteredLinks.length;
+        const visibleLinks = this.filteredLinks.reduce((sum, cat) => sum + cat.links.length, 0);
+        
+        document.getElementById('totalLinks').textContent = visibleLinks;
+        document.getElementById('totalCategories').textContent = visibleCategories;
+    }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    new LinksDirectory();
+});
             <div class="channel-card ${channel.id === 'mmtv' ? 'active' : ''}" data-id="${channel.id}">
                 <div class="channel-icon">${channel.logo}</div>
                 <div class="channel-title">${channel.name}</div>
