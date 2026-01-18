@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📁 My pCloud Files</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 pCloud File Manager</h1>
+            <p>ငါ့ files အားလုံး ဒီနေရာမှာ</p>
+        </header>
+
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="🔍 File ရှာရန်...">
+            <select id="sortSelect">
+                <option value="name">Name</option>
+                <option value="size">Size</option>
+                <option value="date">Date</option>
+            </select>
+        </div>
+
+        <div id="loading" class="loading">⏳ Files များ ဖတ်နေပါသည်...</div>
+        <div id="filesContainer" class="files-container"></div>
+        <div id="stats" class="stats"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
