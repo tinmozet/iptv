@@ -1,110 +1,195 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPTV Player</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>IPTV Player - Audio Fixed</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#000; color:#fff; font-family:sans-serif; }
-        #player { width:100%; height:100vh; }
-        #controls { position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.9); padding:15px; }
-        button { background:#ff4081; color:white; border:none; padding:12px 20px; margin:5px; border-radius:25px; font-size:16px; }
-        select { background:#333; color:white; padding:12px; border-radius:10px; width:100%; margin:5px 0; }
-        .channel-list { max-height:200px; overflow:auto; }
-        .channel { padding:10px; cursor:pointer; border-bottom:1px solid #444; }
-        .channel:hover { background:#ff4081; }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#000;color:#fff;font-family:system-ui;overflow:hidden}
+        #player{width:100vw;height:100vh;background:#000}
+        #overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;display:none}
+        #controls{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.98);backdrop-filter:blur(20px);padding:20px;box-shadow:0-10px 40px rgba(255,64,129,0.5)}
+        button{background:#ff4081;color:#fff;border:0;padding:12px 24px;margin:6px;border-radius:25px;font-size:16px;font-weight:700;min-width:100px;box-shadow:0 4px 20px rgba(255,64,129,0.4);transition:all .2s}
+        button:active{transform:scale(.95)}
+        select{background:rgba(255,255,255,.1);color:#fff;padding:12px;border-radius:12px;width:100%;margin:8px 0;font-size:16px;border:1px solid rgba(255,255,255,.3)}
+        #channels{max-height:220px;overflow:auto;background:rgba(255,255,255,.05);border-radius:12px;margin:10px 0;padding:10px}
+        .channel{padding:12px;cursor:pointer;border-radius:8px;font-size:15px;transition:all .2s;border-bottom:1px solid rgba(255,255,255,.1)}
+        .channel:hover,.channel.active{background:#ff4081}
+        #status{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);padding:12px 20px;border-radius:25px;font-size:14px}
+        #audio-status{position:fixed;top:60px;left:50%;transform:translateX(-50%);padding:10px 15px;border-radius:20px;font-size:12px}
+        #volume{width:100%;margin:10px 0;height:6px;background:#333;border-radius:3px}
     </style>
 </head>
 <body>
-    <video id="player" controls autoplay muted playsinline></video>
+    <!-- 🎵 AUDIO UNLOCK OVERLAY -->
+    <div id="overlay">
+        <div style="font-size:48px;margin-bottom:20px;">🔊</div>
+        <div style="font-size:24px;margin-bottom:10px;">Click to Enable Audio</div>
+        <button onclick="unlockAndPlay()" style="font-size:20px;padding:15px 40px;">START PLAYING</button>
+        <div style="margin-top:20px;font-size:14px;color:#ccc;">Touch anywhere to unlock sound</div>
+    </div>
+
+    <div id="status">Loading...</div>
+    <div id="audio-status">Audio: 🔇</div>
     
+    <video id="player" 
+           preload="auto" 
+           playsinline 
+           webkit-playsinline 
+           x5-playsinline 
+           style="width:100vw;height:100vh;object-fit:contain;background:#000">
+    </video>
+
     <div id="controls">
         <select id="playlist" onchange="loadPlaylist()">
-            <option value="https://iptv-eum.pages.dev/Free tv.m3u">Free tv.m3u</option>
-            <!-- နောက်ထပ် playlist တွေ ထည့်လို့ရတယ် -->
+            <option value="https://iptv-eum.pages.dev/XxXAll.m3u">📺 All Channels</option>
         </select>
-        <div id="channels" class="channel-list"></div>
-        <button onclick="toggleFullscreen()">Fullscreen</button>
+        <div id="channels"></div>
+        <div>
+            <input type="range" id="volume" min="0" max="1" step="0.1" value="0.8" oninput="video.volume=this.value">
+            <button id="mute" onclick="toggleMute()">🔊</button>
+            <button onclick="prev()">⏮️</button>
+            <button onclick="next()" style="background:#00e676">▶️</button>
+        </div>
     </div>
 
     <script>
         const video = document.getElementById('player');
-        const hls = new Hls({ enableWorker: false });
-        let channels = [];
-        let currentIndex = 0;
+        const overlay = document.getElementById('overlay');
+        const hls = new Hls({enableWorker:false,lowLatencyMode:true});
+        let channels = [], currentIndex = 0;
+        
+        // 🎵 CRITICAL AUDIO FIXES
+        video.volume = 0.8;
+        video.muted = false;
+        let userInteracted = false;
 
-        // M3U ဖတ်ယူတာ
+        // 1. USER GESTURE REQUIRED - Click နှိပ်ပြီးမှ audio
+        function unlockAndPlay() {
+            userInteracted = true;
+            overlay.style.display = 'none';
+            video.muted = false;
+            video.volume = 1.0;
+            document.getElementById('audio-status').innerHTML = 'Audio: 🔊 ON';
+            loadPlaylist();
+        }
+
+        // 2. Touch/Click ရင် auto unlock
+        document.addEventListener('click', function(e) {
+            if(!userInteracted) {
+                unlockAndPlay();
+            }
+        }, {once: true});
+
+        document.addEventListener('touchstart', function(e) {
+            if(!userInteracted) {
+                unlockAndPlay();
+            }
+        }, {once: true});
+
+        // 3. M3U Load with AUDIO PRIORITY
         async function loadPlaylist() {
-            const playlistUrl = document.getElementById('playlist').value;
+            const url = document.getElementById('playlist').value;
+            document.getElementById('status').textContent = 'Loading channels...';
+            
             try {
-                const response = await fetch(playlistUrl);
-                const m3u = await response.text();
+                // CORS Proxy for M3U
+                const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                const res = await fetch(proxy);
+                const data = await res.json();
+                const m3u = data.contents;
+                
                 parseM3U(m3u);
+                document.getElementById('status').textContent = `${channels.length} channels ✓`;
             } catch(e) {
-                alert('Playlist မရနိုင်ဘူး! 🔴');
+                document.getElementById('status').textContent = '❌ Load failed';
             }
         }
 
-        // M3U parse လုပ်တာ
-        function parseM3U(m3u) {
+        function parseM3U(text) {
             channels = [];
-            const lines = m3u.split('\n');
-            let currentChannel = null;
+            const lines = text.split('\n');
+            let ch = null;
             
             for(let line of lines) {
-                if(line.startsWith('#EXTINF:')) {
-                    const nameMatch = line.match(/,(.+)$/);
-                    currentChannel = { name: nameMatch ? nameMatch[1] : 'Unknown' };
-                } else if(line.startsWith('http') && currentChannel) {
-                    currentChannel.url = line.trim();
-                    channels.push(currentChannel);
-                    currentChannel = null;
+                if(line.startsWith('#EXTINF')) {
+                    ch = {name: line.split(',').pop()?.trim() || 'Channel'};
+                } else if(line.startsWith('http') && ch) {
+                    ch.url = line.trim();
+                    channels.push(ch);
+                    ch = null;
                 }
             }
-            
             showChannels();
-            playChannel(0);
+            if(channels[0]) play(0);
         }
 
-        // Channel list ပြတာ
         function showChannels() {
-            const container = document.getElementById('channels');
-            container.innerHTML = channels.map((ch, i) => 
-                `<div class="channel" onclick="playChannel(${i})">${ch.name}</div>`
-            ).join('');
+            document.getElementById('channels').innerHTML = 
+                channels.slice(0,25).map((ch,i)=>`
+                    <div class="channel ${i===currentIndex?'active':''}" onclick="play(${i})">
+                        📺 ${ch.name}
+                    </div>
+                `).join('');
         }
 
-        // Channel ဖွင့်တာ
-        function playChannel(index) {
+        // 🎵 AUDIO GUARANTEED PLAY
+        async function play(index) {
+            if(index<0||index>=channels.length) return;
             currentIndex = index;
-            const channel = channels[index];
-            if(channel.url.includes('.m3u8') || channel.url.includes('.ts')) {
-                hls.loadSource(channel.url);
-                hls.attachMedia(video);
-            } else {
-                video.src = channel.url;
+            showChannels();
+            
+            const ch = channels[index];
+            document.getElementById('status').textContent = ch.name;
+            
+            if(userInteracted) {
+                video.muted = false;  // FORCE UNMUTE
+                video.volume = 1.0;
             }
-            video.play();
+            
+            try {
+                if(ch.url.includes('.m3u8')) {
+                    hls.loadSource(ch.url);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, ()=> {
+                        video.play();
+                    });
+                } else {
+                    video.src = ch.url;
+                    await video.load();
+                    video.play();
+                }
+            } catch(e) {
+                document.getElementById('status').textContent = '❌ Stream error';
+            }
         }
 
-        // Fullscreen
-        function toggleFullscreen() {
-            if(!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-            }
+        function toggleMute() {
+            video.muted = !video.muted;
+            document.getElementById('mute').textContent = video.muted ? '🔇' : '🔊';
+            document.getElementById('audio-status').textContent = `Audio: ${video.muted ? '🔇' : '🔊'}`;
         }
 
-        // Auto load လုပ်တာ
-        loadPlaylist();
-        
-        // Next/Previous channel (Volume buttons)
-        document.addEventListener('keydown', (e) => {
-            if(e.code === 'ArrowRight') playChannel((currentIndex + 1) % channels.length);
-            if(e.code === 'ArrowLeft') playChannel((currentIndex - 1 + channels.length) % channels.length);
+        function prev() { play(currentIndex-1); }
+        function next() { play(currentIndex+1 % channels.length); }
+
+        // Remote/TV Controls
+        document.addEventListener('keydown', e=>{
+            if(!userInteracted) return;
+            switch(e.code) {
+                case 'ArrowLeft': prev(); break;
+                case 'ArrowRight': next(); break;
+                case 'ArrowUp': video.volume = Math.min(1, video.volume + 0.1); break;
+                case 'ArrowDown': video.volume = Math.max(0, video.volume - 0.1); break;
+                case 'Space': video.paused ? video.play() : video.pause(); break;
+            }
         });
+
+        // Show overlay first
+        overlay.style.display = 'flex';
+        document.getElementById('status').textContent = 'Click to start ��';
     </script>
 </body>
 </html>
