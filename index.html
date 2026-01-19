@@ -3,193 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>IPTV Player - Audio Fixed</title>
+    <title>IPTV Player Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{background:#000;color:#fff;font-family:system-ui;overflow:hidden}
         #player{width:100vw;height:100vh;background:#000}
-        #overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;display:none}
-        #controls{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.98);backdrop-filter:blur(20px);padding:20px;box-shadow:0-10px 40px rgba(255,64,129,0.5)}
-        button{background:#ff4081;color:#fff;border:0;padding:12px 24px;margin:6px;border-radius:25px;font-size:16px;font-weight:700;min-width:100px;box-shadow:0 4px 20px rgba(255,64,129,0.4);transition:all .2s}
+        #overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;display:flex}
+        #controls{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.98);backdrop-filter:blur(20px);padding:20px;box-shadow:0-10px 40px rgba(0,230,118,0.5)}
+        button{background:#ff4081;color:#fff;border:0;padding:12px 20px;margin:4px;border-radius:25px;font-size:15px;font-weight:700;min-width:90px;box-shadow:0 3px 15px rgba(255,64,129,0.4)}
         button:active{transform:scale(.95)}
-        select{background:rgba(255,255,255,.1);color:#fff;padding:12px;border-radius:12px;width:100%;margin:8px 0;font-size:16px;border:1px solid rgba(255,255,255,.3)}
-        #channels{max-height:220px;overflow:auto;background:rgba(255,255,255,.05);border-radius:12px;margin:10px 0;padding:10px}
-        .channel{padding:12px;cursor:pointer;border-radius:8px;font-size:15px;transition:all .2s;border-bottom:1px solid rgba(255,255,255,.1)}
-        .channel:hover,.channel.active{background:#ff4081}
-        #status{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);padding:12px 20px;border-radius:25px;font-size:14px}
-        #audio-status{position:fixed;top:60px;left:50%;transform:translateX(-50%);padding:10px 15px;border-radius:20px;font-size:12px}
-        #volume{width:100%;margin:10px 0;height:6px;background:#333;border-radius:3px}
+        select{background:rgba(255,255,255,.15);color:#fff;padding:12px;border-radius:12px;width:100%;margin:5px 0;font-size:16px;border:1px solid rgba(255,255,255,.3)}
+        #channels-container{display:flex;gap:10px;margin:10px 0}
+        #channels{flex:1;max-height:200px;overflow:auto;background:rgba(255,255,255,.08);border-radius:12px;padding:10px}
+        .channel{padding:10px 8px;font-size:14px;border-radius:8px;cursor:pointer;transition:all .2s;margin-bottom:4px;border-left:3px solid transparent}
+        .channel:hover,.channel.active{background:rgba(255,64,129,.8);border-left-color:#ff4081}
+        #status{position:fixed;top:15px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);padding:10px 20px;border-radius:20px;font-size:14px;white-space:nowrap}
+        #debug{position:fixed;top:60px;right:15px;background:rgba(0,0,0,.8);padding:8px 12px;border-radius:12px;font-size:12px;max-width:200px}
+        #volume{width:120px;height:5px;margin:5px}
+        .loading{animation:pulse 1.5s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
     </style>
 </head>
 <body>
-    <!-- 🎵 AUDIO UNLOCK OVERLAY -->
     <div id="overlay">
-        <div style="font-size:48px;margin-bottom:20px;">🔊</div>
-        <div style="font-size:24px;margin-bottom:10px;">Click to Enable Audio</div>
-        <button onclick="unlockAndPlay()" style="font-size:20px;padding:15px 40px;">START PLAYING</button>
-        <div style="margin-top:20px;font-size:14px;color:#ccc;">Touch anywhere to unlock sound</div>
+        <div style="font-size:36px;margin-bottom:15px;">📺</div>
+        <div style="font-size:22px;margin-bottom:25px;">IPTV Player Ready</div>
+        <button onclick="startPlayer()" style="font-size:18px;padding:18px 40px;background:#00e676;box-shadow:0 5px 25px rgba(0,230,118,.5)">▶️ START</button>
+        <div style="margin-top:25px;font-size:13px;color:#ccc;max-width:300px;line-height:1.4">
+            Touch screen to unlock audio & load channels
+        </div>
     </div>
 
-    <div id="status">Loading...</div>
-    <div id="audio-status">Audio: 🔇</div>
+    <div id="status" class="loading">Click Start ▶️</div>
+    <div id="debug"></div>
     
-    <video id="player" 
-           preload="auto" 
-           playsinline 
-           webkit-playsinline 
-           x5-playsinline 
-           style="width:100vw;height:100vh;object-fit:contain;background:#000">
-    </video>
+    <video id="player" preload="metadata" playsinline webkit-playsinline x5-playsinline style="width:100vw;height:100vh;object-fit:contain"></video>
 
-    <div id="controls">
-        <select id="playlist" onchange="loadPlaylist()">
-            <option value="https://iptv-eum.pages.dev/Free tv.m3u">📺 All Channels</option>
+    <div id="controls" style="display:none">
+        <select id="playlist">
+            <option value="https://iptv-eum.pages.dev/Free tv.m3u">🔥 All Channels (Full)</option>
         </select>
-        <div id="channels"></div>
-        <div>
-            <input type="range" id="volume" min="0" max="1" step="0.1" value="0.8" oninput="video.volume=this.value">
-            <button id="mute" onclick="toggleMute()">🔊</button>
-            <button onclick="prev()">⏮️</button>
-            <button onclick="next()" style="background:#00e676">▶️</button>
+        <div id="channels-container">
+            <div id="channels">Click START to load channels</div>
+            <div style="width:120px">
+                <div>Vol</div>
+                <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8">
+                <button id="mute" onclick="toggleMute()" style="width:100%;background:#00e676;margin:5px 0 0 0">🔊</button>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <button onclick="prev()">⏮️ Prev</button>
+            <button onclick="playPause()" id="playbtn">⏸️</button>
+            <button onclick="next()">Next ▶️</button>
         </div>
     </div>
 
     <script>
         const video = document.getElementById('player');
-        const overlay = document.getElementById('overlay');
-        const hls = new Hls({enableWorker:false,lowLatencyMode:true});
-        let channels = [], currentIndex = 0;
+        const hls = new Hls({enableWorker:false,lowLatencyMode:true,maxBufferLength:30});
+        let channels = [], currentIndex = 0, isPlaying = false;
         
-        // 🎵 CRITICAL AUDIO FIXES
         video.volume = 0.8;
-        video.muted = false;
-        let userInteracted = false;
+        let hasInteracted = false;
 
-        // 1. USER GESTURE REQUIRED - Click နှိပ်ပြီးမှ audio
-        function unlockAndPlay() {
-            userInteracted = true;
-            overlay.style.display = 'none';
+        function log(msg) {
+            document.getElementById('debug').innerHTML = msg;
+            console.log(msg);
+        }
+
+        function startPlayer() {
+            hasInteracted = true;
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('controls').style.display = 'block';
             video.muted = false;
             video.volume = 1.0;
-            document.getElementById('audio-status').innerHTML = 'Audio: 🔊 ON';
-            loadPlaylist();
+            loadM3U();
         }
 
-        // 2. Touch/Click ရင် auto unlock
-        document.addEventListener('click', function(e) {
-            if(!userInteracted) {
-                unlockAndPlay();
-            }
-        }, {once: true});
-
-        document.addEventListener('touchstart', function(e) {
-            if(!userInteracted) {
-                unlockAndPlay();
-            }
-        }, {once: true});
-
-        // 3. M3U Load with AUDIO PRIORITY
-        async function loadPlaylist() {
-            const url = document.getElementById('playlist').value;
-            document.getElementById('status').textContent = 'Loading channels...';
+        // 🔥 MULTIPLE M3U LOADERS (တစ်ခု fail ရင် နောက်တစ်ခု)
+        async function loadM3U() {
+            const urls = [
+                document.getElementById('playlist').value,
+                'https://iptv-org.github.io/iptv/index.m3u',
+                'https://raw.githubusercontent.com/iptv-org/iptv/master/channels/us.m3u'
+            ];
             
-            try {
-                // CORS Proxy for M3U
-                const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                const res = await fetch(proxy);
-                const data = await res.json();
-                const m3u = data.contents;
-                
-                parseM3U(m3u);
-                document.getElementById('status').textContent = `${channels.length} channels ✓`;
-            } catch(e) {
-                document.getElementById('status').textContent = '❌ Load failed';
-            }
-        }
-
-        function parseM3U(text) {
-            channels = [];
-            const lines = text.split('\n');
-            let ch = null;
-            
-            for(let line of lines) {
-                if(line.startsWith('#EXTINF')) {
-                    ch = {name: line.split(',').pop()?.trim() || 'Channel'};
-                } else if(line.startsWith('http') && ch) {
-                    ch.url = line.trim();
-                    channels.push(ch);
-                    ch = null;
+            for(let url of urls) {
+                try {
+                    log(`Loading: ${url}`);
+                    const m3u = await fetchM3U(url);
+                    if(m3u) {
+                        parseM3U(m3u);
+                        log(`✅ ${channels.length} channels loaded!`);
+                        play(0);
+                        return;
+                    }
+                } catch(e) {
+                    log(`❌ ${url} failed`);
                 }
             }
+            log('❌ All playlists failed');
+        }
+
+        // 🔥 CORS-FREE M3U FETCH
+        async function fetchM3U(url) {
+            const proxies = [
+                `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`
+            ];
+            
+            for(let proxy of proxies) {
+                try {
+                    const res = await fetch(proxy, {cache: 'no-cache'});
+                    if(res.ok) {
+                        const data = await res.text();
+                        if(data.includes('#EXTINF')) return data;
+                    }
+                } catch(e) {}
+            }
+            return null;
+        }
+
+        function parseM3U(m3u) {
+            channels = [];
+            const lines = m3u.split('\n');
+            let current = null;
+            
+            for(let line of lines) {
+                line = line.trim();
+                if(line.startsWith('#EXTINF:')) {
+                    const name = line.split(',').pop()?.replace(/[\n\r]/g,'') || 'Channel';
+                    current = {name: name.substring(0,50)};
+                } else if(line.startsWith('http') && current) {
+                    current.url = line;
+                    channels.push(current);
+                    current = null;
+                }
+            }
+            
+            document.getElementById('status').textContent = `${channels.length} channels ✓`;
             showChannels();
-            if(channels[0]) play(0);
         }
 
         function showChannels() {
-            document.getElementById('channels').innerHTML = 
-                channels.slice(0,25).map((ch,i)=>`
-                    <div class="channel ${i===currentIndex?'active':''}" onclick="play(${i})">
-                        📺 ${ch.name}
-                    </div>
-                `).join('');
+            const container = document.getElementById('channels');
+            if(channels.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:20px;color:#666">No channels</div>';
+                return;
+            }
+            container.innerHTML = channels.slice(0,30).map((ch,i)=>`
+                <div class="channel ${i===currentIndex?'active':''}" onclick="play(${i})">
+                    ${ch.name}
+                </div>
+            `).join('');
         }
 
-        // 🎵 AUDIO GUARANTEED PLAY
         async function play(index) {
-            if(index<0||index>=channels.length) return;
+            if(index >= channels.length) return;
             currentIndex = index;
+            const channel = channels[index];
             showChannels();
+            document.getElementById('status').textContent = channel.name;
             
-            const ch = channels[index];
-            document.getElementById('status').textContent = ch.name;
-            
-            if(userInteracted) {
-                video.muted = false;  // FORCE UNMUTE
-                video.volume = 1.0;
-            }
+            if(hasInteracted) video.muted = false;
             
             try {
-                if(ch.url.includes('.m3u8')) {
-                    hls.loadSource(ch.url);
+                if(channel.url.includes('.m3u8') || channel.url.includes('.ts')) {
+                    hls.destroy();
+                    hls.loadSource(channel.url);
                     hls.attachMedia(video);
-                    hls.on(Hls.Events.MANIFEST_PARSED, ()=> {
-                        video.play();
-                    });
                 } else {
-                    video.src = ch.url;
-                    await video.load();
-                    video.play();
+                    video.src = channel.url;
                 }
+                await video.play();
+                isPlaying = true;
+                document.getElementById('playbtn').textContent = '⏸️';
             } catch(e) {
-                document.getElementById('status').textContent = '❌ Stream error';
+                document.getElementById('status').textContent = 'Stream failed';
+            }
+        }
+
+        function playPause() {
+            if(isPlaying) {
+                video.pause();
+                isPlaying = false;
+                document.getElementById('playbtn').textContent = '▶️';
+            } else {
+                video.play();
+                isPlaying = true;
+                document.getElementById('playbtn').textContent = '⏸️';
             }
         }
 
         function toggleMute() {
             video.muted = !video.muted;
             document.getElementById('mute').textContent = video.muted ? '🔇' : '🔊';
-            document.getElementById('audio-status').textContent = `Audio: ${video.muted ? '🔇' : '🔊'}`;
         }
 
-        function prev() { play(currentIndex-1); }
-        function next() { play(currentIndex+1 % channels.length); }
+        function prev() { play(Math.max(0, currentIndex-1)); }
+        function next() { play((currentIndex+1) % Math.max(1, channels.length)); }
 
-        // Remote/TV Controls
+        // Controls
         document.addEventListener('keydown', e=>{
-            if(!userInteracted) return;
-            switch(e.code) {
-                case 'ArrowLeft': prev(); break;
-                case 'ArrowRight': next(); break;
-                case 'ArrowUp': video.volume = Math.min(1, video.volume + 0.1); break;
-                case 'ArrowDown': video.volume = Math.max(0, video.volume - 0.1); break;
-                case 'Space': video.paused ? video.play() : video.pause(); break;
-            }
+            if(!hasInteracted) return;
+            e.preventDefault();
+            if(e.code==='ArrowLeft') prev();
+            if(e.code==='ArrowRight') next();
+            if(e.code==='Space') playPause();
         });
 
-        // Show overlay first
-        overlay.style.display = 'flex';
-        document.getElementById('status').textContent = 'Click to start ��';
+        video.addEventListener('ended', ()=>next());
     </script>
 </body>
 </html>
