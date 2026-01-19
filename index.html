@@ -3,217 +3,365 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPTV Live Player</title>
+    <title>IPTV Player - Free Live TV</title>
+    
+    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+    <meta name="theme-color" content="#ff0000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+    
     <style>
-        :root{--bg:#000;--accent:#ff4081;--card:rgba(255,255,255,.08)}
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:system-ui, -apple-system, sans-serif;background:var(--bg);color:#fff;overflow:hidden;touch-action:manipulation}
-        #player{width:100vw;height:100vh;background:var(--bg);object-fit:contain}
-        #ui{position:fixed;inset:0;pointer-events:none;z-index:10}
-        #controls{bottom:20px;left:20px;right:20px;background:var(--card);backdrop-filter:blur(20px);border-radius:20px;padding:25px;pointer-events:all;box-shadow:0-20px 40px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1)}
-        h1{font-size:28px;margin-bottom:15px;text-align:center;background:linear-gradient(45deg,var(--accent),#00e676);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-        select{width:100%;padding:15px;margin:10px 0;border-radius:15px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:16px}
-        #channels{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-height:250px;overflow:auto;margin:15px 0;padding:15px;background:var(--card);border-radius:15px}
-        .channel{padding:15px;border-radius:12px;cursor:pointer;transition:all .3s;font-size:14px;text-align:center;border:1px solid transparent}
-        .channel:hover,.channel.active{background:var(--accent);border-color:#fff;transform:translateY(-2px);box-shadow:0 5px 20px rgba(255,64,129,.4)}
-        .btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:15px}
-        button{padding:15px 10px;border:0;border-radius:15px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;background:var(--accent);color:#fff;box-shadow:0 4px 15px rgba(255,64,129,.3)}
-        button:active{transform:scale(.95)}
-        button.secondary{background:#666;box-shadow:0 4px 15px rgba(0,0,0,.3)}
-        button.play-pause{background:#00e676 !important;box-shadow:0 4px 15px rgba(0,230,118,.4)}
-        #status{position:fixed;top:20px;left:50%;transform:translate(-50%);background:rgba(0,0,0,.9);padding:12px 24px;border-radius:25px;font-weight:500}
-        #volume{width:100%;height:6px;margin:10px 0;background:rgba(255,255,255,.2);border-radius:3px;accent-color:var(--accent)}
-        .hidden{display:none}
-        @media (max-width:600px){#channels{grid-template-columns:1fr}}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .status {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        /* Player */
+        .player-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .no-stream {
+            color: white;
+            font-size: 1.2rem;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        /* Controls */
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 15px 25px;
+            border-radius: 50px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 80px;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255,107,107,0.4);
+        }
+        
+        .btn.active {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+        
+        /* Channel List */
+        .channel-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .channel-list {
+            padding: 20px;
+        }
+        
+        .channel-item {
+            background: rgba(255,255,255,0.1);
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .channel-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-5px);
+        }
+        
+        .channel-name {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .channel-category {
+            color: #4ecdc4;
+            font-size: 0.9rem;
+        }
+        
+        /* Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #ff6b6b;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.2rem; }
+            .controls { 
+                padding: 10px 15px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .btn { 
+                padding: 10px 15px;
+                font-size: 0.8rem;
+                min-width: 70px;
+            }
+        }
     </style>
 </head>
 <body>
-    <video id="video" autoplay playsinline muted preload="metadata"></video>
-    
-    <div id="ui">
-        <div id="status">Loading player...</div>
-        <div id="controls">
-            <h1>📺 IPTV Live</h1>
-            
-            <select id="playlist">
-                <option value="channels.m3u">🔥 Your Channels</option>
-            </select>
-            
-            <div id="channel-list">Click Load to see channels</div>
-            
-            <input type="range" id="volume" min="0" max="1" step="0.05" value="0.7">
-            
-            <div class="btns">
-                <button onclick="previousChannel()" class="secondary">⏮️ Prev</button>
-                <button onclick="togglePlay()" class="play-pause" id="playBtn">▶️</button>
-                <button onclick="nextChannel()">Next ▶️</button>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📺 IPTV Player</h1>
+            <div class="status" id="status">Ready to play</div>
+        </div>
+        
+        <!-- Player -->
+        <div class="player-container">
+            <video id="videoPlayer" controls preload="none"></video>
+            <div class="no-stream" id="noStream">
+                <div class="spinner"></div>
+                Select a channel to start watching
             </div>
-            
-            <button onclick="toggleMute()" class="secondary" id="muteBtn" style="width:100%;margin-top:10px">🔊 Unmute</button>
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                Loading stream...
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn active" onclick="loadChannels('sport')">⚽ Sports</button>
+            <button class="btn" onclick="loadChannels('news')">📰 News</button>
+            <button class="btn" onclick="loadChannels('movie')">🎬 Movies</button>
+            <button class="btn" onclick="loadChannels('live')">📡 Live TV</button>
         </div>
     </div>
+    
+    <!-- Channel Modal -->
+    <div class="channel-modal" id="channelModal">
+        <div class="channel-list" id="channelList"></div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
-        class IPTVPlayer {
-            constructor() {
-                this.video = document.getElementById('video');
-                this.hls = null;
-                this.channels = [];
-                this.currentIndex = 0;
-                this.isPlaying = false;
-                this.hasInteracted = false;
-                
-                this.init();
-            }
+        // IPTV M3U Playlists (Free Public Sources)
+        const playlists = {
+            sport: 'https://iptv-org.github.io/iptv/categories/sports.m3u',
+            news: 'https://iptv-org.github.io/iptv/categories/news.m3u',
+            movie: 'https://iptv-org.github.io/iptv/categories/movies.m3u',
+            live: 'https://iptv-org.github.io/iptv/index.m3u'
+        };
+        
+        const videoPlayer = document.getElementById('videoPlayer');
+        const noStream = document.getElementById('noStream');
+        const loading = document.getElementById('loading');
+        const channelModal = document.getElementById('channelModal');
+        const channelList = document.getElementById('channelList');
+        const status = document.getElementById('status');
+        
+        let currentChannels = [];
+        
+        // Load Channels
+        async function loadChannels(category) {
+            // Update active button
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
             
-            async init() {
-                // Audio/Video setup
-                this.video.volume = 0.7;
-                this.video.addEventListener('loadedmetadata', () => {
-                    document.getElementById('status').textContent = 'Ready to play!';
-                });
-                
-                // User interaction unlock
-                ['click', 'touchstart'].forEach(event => {
-                    document.addEventListener(event, () => {
-                        if(!this.hasInteracted) {
-                            this.hasInteracted = true;
-                            this.video.muted = false;
-                            document.getElementById('muteBtn').textContent = '🔊';
-                        }
-                    }, {once: true});
-                });
-                
-                await this.loadPlaylist();
-            }
+            status.textContent = `Loading ${category} channels...`;
+            channelModal.style.display = 'block';
             
-            async loadPlaylist() {
-                document.getElementById('status').textContent = 'Loading channels...';
-                
-                try {
-                    const playlistUrl = document.getElementById('playlist').value;
-                    const response = await fetch(playlistUrl);
-                    const m3uContent = await response.text();
-                    
-                    this.parseM3U(m3uContent);
-                    this.updateChannelList();
-                    document.getElementById('status').textContent = `${this.channels.length} channels loaded!`;
-                    
-                } catch (error) {
-                    document.getElementById('status').textContent = 'Failed to load playlist';
-                    console.error('Playlist error:', error);
-                }
-            }
-            
-            parseM3U(m3uContent) {
-                this.channels = [];
-                const lines = m3uContent.split('\n');
-                let currentChannel = null;
-                
-                for (let line of lines) {
-                    line = line.trim();
-                    if (line.startsWith('#EXTINF:')) {
-                        const nameMatch = line.match(/,(.+)$/);
-                        currentChannel = {
-                            name: nameMatch ? nameMatch[1].trim() : 'Unknown Channel',
-                            url: ''
-                        };
-                    } else if (line.startsWith('http') && currentChannel) {
-                        currentChannel.url = line;
-                        this.channels.push(currentChannel);
-                        currentChannel = null;
-                    }
-                }
-            }
-            
-            updateChannelList() {
-                const container = document.getElementById('channel-list');
-                container.innerHTML = this.channels.slice(0, 20).map((channel, index) => `
-                    <div class="channel ${index === this.currentIndex ? 'active' : ''}" 
-                         onclick="player.playChannel(${index})">
-                        ${channel.name}
-                    </div>
-                `).join('');
-            }
-            
-            async playChannel(index) {
-                if (index >= this.channels.length) return;
-                
-                this.currentIndex = index;
-                const channel = this.channels[index];
-                
-                document.getElementById('status').textContent = `Playing: ${channel.name}`;
-                this.updateChannelList();
-                
-                try {
-                    // Destroy previous HLS instance
-                    if (this.hls) {
-                        this.hls.destroy();
-                    }
-                    
-                    if (Hls.isSupported() && channel.url.includes('.m3u8')) {
-                        this.hls = new Hls({
-                            enableWorker: false,
-                            lowLatencyMode: true,
-                            backBufferLength: 0
-                        });
-                        this.hls.loadSource(channel.url);
-                        this.hls.attachMedia(this.video);
-                    } else {
-                        this.video.src = channel.url;
-                    }
-                    
-                    await this.video.play();
-                    this.isPlaying = true;
-                    document.getElementById('playBtn').textContent = '⏸️';
-                    
-                } catch (error) {
-                    document.getElementById('status').textContent = 'Stream failed';
-                }
-            }
-            
-            nextChannel() {
-                const nextIndex = (this.currentIndex + 1) % this.channels.length;
-                this.playChannel(nextIndex);
-            }
-            
-            previousChannel() {
-                const prevIndex = this.currentIndex === 0 ? 
-                    this.channels.length - 1 : this.currentIndex - 1;
-                this.playChannel(prevIndex);
-            }
-            
-            togglePlay() {
-                if (this.isPlaying) {
-                    this.video.pause();
-                    this.isPlaying = false;
-                    document.getElementById('playBtn').textContent = '▶️';
-                } else {
-                    this.video.play();
-                    this.isPlaying = true;
-                    document.getElementById('playBtn').textContent = '⏸️';
-                }
-            }
-            
-            toggleMute() {
-                this.video.muted = !this.video.muted;
-                document.getElementById('muteBtn').textContent = 
-                    this.video.muted ? '🔇' : '🔊';
+            try {
+                const response = await fetch(playlists[category]);
+                const m3u = await response.text();
+                parseM3U(m3u, category);
+            } catch (error) {
+                channelList.innerHTML = '<div style="color: #ff6b6b; text-align: center; padding: 40px;">Failed to load channels. Please try again!</div>';
             }
         }
         
-        // Global player instance
-        const player = new IPTVPlayer();
+        // Parse M3U Playlist
+        function parseM3U(m3uContent, category) {
+            const lines = m3uContent.split('\n');
+            currentChannels = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].startsWith('#EXTINF:')) {
+                    const nameMatch = lines[i].match(/tvg-name="([^"]+)"/);
+                    const name = nameMatch ? nameMatch[1] : lines[i].match(/,(.+)/)?.[1] || 'Unknown Channel';
+                    
+                    if (lines[i + 1] && lines[i + 1].startsWith('http')) {
+                        currentChannels.push({
+                            name: name,
+                            url: lines[i + 1],
+                            category: category
+                        });
+                        i++; // Skip URL line
+                    }
+                }
+            }
+            
+            displayChannels(currentChannels.slice(0, 50)); // Limit to 50 channels
+        }
         
-        // Global functions for onclick handlers
-        window.playChannel = (index) => player.playChannel(index);
-        window.nextChannel = () => player.nextChannel();
-        window.previousChannel = () => player.previousChannel();
-        window.togglePlay = () => player.togglePlay();
-        window.toggleMute = () => player.toggleMute();
+        // Display Channels
+        function displayChannels(channels) {
+            channelList.innerHTML = channels.map((channel, index) => `
+                <div class="channel-item" onclick="playChannel('${channel.url}', '${channel.name}')">
+                    <div class="channel-name">${channel.name}</div>
+                    <div class="channel-category">${channel.category.toUpperCase()}</div>
+                </div>
+            `).join('');
+        }
+        
+        // Play Channel
+        async function playChannel(url, name) {
+            status.textContent = `Playing: ${name}`;
+            noStream.style.display = 'none';
+            loading.style.display = 'block';
+            channelModal.style.display = 'none';
+            
+            try {
+                videoPlayer.src = url;
+                videoPlayer.play();
+            } catch (error) {
+                loading.style.display = 'none';
+                noStream.innerHTML = '❌ Stream not available. Try another channel!';
+                noStream.style.display = 'block';
+            }
+        }
+        
+        // Event Listeners
+        videoPlayer.addEventListener('loadstart', () => {
+            loading.style.display = 'block';
+        });
+        
+        videoPlayer.addEventListener('canplay', () => {
+            loading.style.display = 'none';
+            noStream.style.display = 'none';
+        });
+        
+        videoPlayer.addEventListener('error', () => {
+            loading.style.display = 'none';
+            noStream.innerHTML = '❌ Stream failed. Try another channel!';
+            noStream.style.display = 'block';
+        });
+        
+        // Close modal on outside click
+        channelModal.addEventListener('click', (e) => {
+            if (e.target === channelModal) {
+                channelModal.style.display = 'none';
+            }
+        });
+        
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            status.textContent = '📱 Tap status to install app!';
+            status.style.cursor = 'pointer';
+            status.onclick = installApp;
+        });
+        
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => {
+                    deferredPrompt = null;
+                    status.textContent = '✅ App installed!';
+                });
+            }
+        }
     </script>
 </body>
 </html>
