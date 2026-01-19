@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#000; color:#fff; font-family:sans-serif; }
+        #player { width:100%; height:100vh; }
+        #controls { position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.9); padding:15px; }
+        button { background:#ff4081; color:white; border:none; padding:12px 20px; margin:5px; border-radius:25px; font-size:16px; }
+        select { background:#333; color:white; padding:12px; border-radius:10px; width:100%; margin:5px 0; }
+        .channel-list { max-height:200px; overflow:auto; }
+        .channel { padding:10px; cursor:pointer; border-bottom:1px solid #444; }
+        .channel:hover { background:#ff4081; }
+    </style>
+</head>
+<body>
+    <video id="player" controls autoplay muted playsinline></video>
+    
+    <div id="controls">
+        <select id="playlist" onchange="loadPlaylist()">
+            <option value="https://iptv-eum.pages.dev/XxXAll.m3u">XxXAll.m3u</option>
+            <!-- နောက်ထပ် playlist တွေ ထည့်လို့ရတယ် -->
+        </select>
+        <div id="channels" class="channel-list"></div>
+        <button onclick="toggleFullscreen()">Fullscreen</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('player');
+        const hls = new Hls({ enableWorker: false });
+        let channels = [];
+        let currentIndex = 0;
+
+        // M3U ဖတ်ယူတာ
+        async function loadPlaylist() {
+            const playlistUrl = document.getElementById('playlist').value;
+            try {
+                const response = await fetch(playlistUrl);
+                const m3u = await response.text();
+                parseM3U(m3u);
+            } catch(e) {
+                alert('Playlist မရနိုင်ဘူး! 🔴');
+            }
+        }
+
+        // M3U parse လုပ်တာ
+        function parseM3U(m3u) {
+            channels = [];
+            const lines = m3u.split('\n');
+            let currentChannel = null;
+            
+            for(let line of lines) {
+                if(line.startsWith('#EXTINF:')) {
+                    const nameMatch = line.match(/,(.+)$/);
+                    currentChannel = { name: nameMatch ? nameMatch[1] : 'Unknown' };
+                } else if(line.startsWith('http') && currentChannel) {
+                    currentChannel.url = line.trim();
+                    channels.push(currentChannel);
+                    currentChannel = null;
+                }
+            }
+            
+            showChannels();
+            playChannel(0);
+        }
+
+        // Channel list ပြတာ
+        function showChannels() {
+            const container = document.getElementById('channels');
+            container.innerHTML = channels.map((ch, i) => 
+                `<div class="channel" onclick="playChannel(${i})">${ch.name}</div>`
+            ).join('');
+        }
+
+        // Channel ဖွင့်တာ
+        function playChannel(index) {
+            currentIndex = index;
+            const channel = channels[index];
+            if(channel.url.includes('.m3u8') || channel.url.includes('.ts')) {
+                hls.loadSource(channel.url);
+                hls.attachMedia(video);
+            } else {
+                video.src = channel.url;
+            }
+            video.play();
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            if(!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Auto load လုပ်တာ
+        loadPlaylist();
+        
+        // Next/Previous channel (Volume buttons)
+        document.addEventListener('keydown', (e) => {
+            if(e.code === 'ArrowRight') playChannel((currentIndex + 1) % channels.length);
+            if(e.code === 'ArrowLeft') playChannel((currentIndex - 1 + channels.length) % channels.length);
+        });
+    </script>
+</body>
+</html>
