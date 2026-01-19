@@ -1,220 +1,219 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>IPTV Player Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV Live Player</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
     <style>
+        :root{--bg:#000;--accent:#ff4081;--card:rgba(255,255,255,.08)}
         *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#000;color:#fff;font-family:system-ui;overflow:hidden}
-        #player{width:100vw;height:100vh;background:#000}
-        #overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;display:flex}
-        #controls{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.98);backdrop-filter:blur(20px);padding:20px;box-shadow:0-10px 40px rgba(0,230,118,0.5)}
-        button{background:#ff4081;color:#fff;border:0;padding:12px 20px;margin:4px;border-radius:25px;font-size:15px;font-weight:700;min-width:90px;box-shadow:0 3px 15px rgba(255,64,129,0.4)}
+        body{font-family:system-ui, -apple-system, sans-serif;background:var(--bg);color:#fff;overflow:hidden;touch-action:manipulation}
+        #player{width:100vw;height:100vh;background:var(--bg);object-fit:contain}
+        #ui{position:fixed;inset:0;pointer-events:none;z-index:10}
+        #controls{bottom:20px;left:20px;right:20px;background:var(--card);backdrop-filter:blur(20px);border-radius:20px;padding:25px;pointer-events:all;box-shadow:0-20px 40px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1)}
+        h1{font-size:28px;margin-bottom:15px;text-align:center;background:linear-gradient(45deg,var(--accent),#00e676);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        select{width:100%;padding:15px;margin:10px 0;border-radius:15px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:16px}
+        #channels{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-height:250px;overflow:auto;margin:15px 0;padding:15px;background:var(--card);border-radius:15px}
+        .channel{padding:15px;border-radius:12px;cursor:pointer;transition:all .3s;font-size:14px;text-align:center;border:1px solid transparent}
+        .channel:hover,.channel.active{background:var(--accent);border-color:#fff;transform:translateY(-2px);box-shadow:0 5px 20px rgba(255,64,129,.4)}
+        .btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:15px}
+        button{padding:15px 10px;border:0;border-radius:15px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;background:var(--accent);color:#fff;box-shadow:0 4px 15px rgba(255,64,129,.3)}
         button:active{transform:scale(.95)}
-        select{background:rgba(255,255,255,.15);color:#fff;padding:12px;border-radius:12px;width:100%;margin:5px 0;font-size:16px;border:1px solid rgba(255,255,255,.3)}
-        #channels-container{display:flex;gap:10px;margin:10px 0}
-        #channels{flex:1;max-height:200px;overflow:auto;background:rgba(255,255,255,.08);border-radius:12px;padding:10px}
-        .channel{padding:10px 8px;font-size:14px;border-radius:8px;cursor:pointer;transition:all .2s;margin-bottom:4px;border-left:3px solid transparent}
-        .channel:hover,.channel.active{background:rgba(255,64,129,.8);border-left-color:#ff4081}
-        #status{position:fixed;top:15px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);padding:10px 20px;border-radius:20px;font-size:14px;white-space:nowrap}
-        #debug{position:fixed;top:60px;right:15px;background:rgba(0,0,0,.8);padding:8px 12px;border-radius:12px;font-size:12px;max-width:200px}
-        #volume{width:120px;height:5px;margin:5px}
-        .loading{animation:pulse 1.5s infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        button.secondary{background:#666;box-shadow:0 4px 15px rgba(0,0,0,.3)}
+        button.play-pause{background:#00e676 !important;box-shadow:0 4px 15px rgba(0,230,118,.4)}
+        #status{position:fixed;top:20px;left:50%;transform:translate(-50%);background:rgba(0,0,0,.9);padding:12px 24px;border-radius:25px;font-weight:500}
+        #volume{width:100%;height:6px;margin:10px 0;background:rgba(255,255,255,.2);border-radius:3px;accent-color:var(--accent)}
+        .hidden{display:none}
+        @media (max-width:600px){#channels{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
-    <div id="overlay">
-        <div style="font-size:36px;margin-bottom:15px;">📺</div>
-        <div style="font-size:22px;margin-bottom:25px;">IPTV Player Ready</div>
-        <button onclick="startPlayer()" style="font-size:18px;padding:18px 40px;background:#00e676;box-shadow:0 5px 25px rgba(0,230,118,.5)">▶️ START</button>
-        <div style="margin-top:25px;font-size:13px;color:#ccc;max-width:300px;line-height:1.4">
-            Touch screen to unlock audio & load channels
-        </div>
-    </div>
-
-    <div id="status" class="loading">Click Start ▶️</div>
-    <div id="debug"></div>
+    <video id="video" autoplay playsinline muted preload="metadata"></video>
     
-    <video id="player" preload="metadata" playsinline webkit-playsinline x5-playsinline style="width:100vw;height:100vh;object-fit:contain"></video>
-
-    <div id="controls" style="display:none">
-        <select id="playlist">
-            <option value="https://iptv-eum.pages.dev/Free tv.m3u">🔥 All Channels (Full)</option>
-        </select>
-        <div id="channels-container">
-            <div id="channels">Click START to load channels</div>
-            <div style="width:120px">
-                <div>Vol</div>
-                <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8">
-                <button id="mute" onclick="toggleMute()" style="width:100%;background:#00e676;margin:5px 0 0 0">🔊</button>
+    <div id="ui">
+        <div id="status">Loading player...</div>
+        <div id="controls">
+            <h1>📺 IPTV Live</h1>
+            
+            <select id="playlist">
+                <option value="channels.m3u">🔥 Your Channels</option>
+            </select>
+            
+            <div id="channel-list">Click Load to see channels</div>
+            
+            <input type="range" id="volume" min="0" max="1" step="0.05" value="0.7">
+            
+            <div class="btns">
+                <button onclick="previousChannel()" class="secondary">⏮️ Prev</button>
+                <button onclick="togglePlay()" class="play-pause" id="playBtn">▶️</button>
+                <button onclick="nextChannel()">Next ▶️</button>
             </div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-            <button onclick="prev()">⏮️ Prev</button>
-            <button onclick="playPause()" id="playbtn">⏸️</button>
-            <button onclick="next()">Next ▶️</button>
+            
+            <button onclick="toggleMute()" class="secondary" id="muteBtn" style="width:100%;margin-top:10px">🔊 Unmute</button>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
-        const video = document.getElementById('player');
-        const hls = new Hls({enableWorker:false,lowLatencyMode:true,maxBufferLength:30});
-        let channels = [], currentIndex = 0, isPlaying = false;
-        
-        video.volume = 0.8;
-        let hasInteracted = false;
-
-        function log(msg) {
-            document.getElementById('debug').innerHTML = msg;
-            console.log(msg);
-        }
-
-        function startPlayer() {
-            hasInteracted = true;
-            document.getElementById('overlay').style.display = 'none';
-            document.getElementById('controls').style.display = 'block';
-            video.muted = false;
-            video.volume = 1.0;
-            loadM3U();
-        }
-
-        // 🔥 MULTIPLE M3U LOADERS (တစ်ခု fail ရင် နောက်တစ်ခု)
-        async function loadM3U() {
-            const urls = [
-                document.getElementById('playlist').value,
-                'https://iptv-org.github.io/iptv/index.m3u',
-                'https://raw.githubusercontent.com/iptv-org/iptv/master/channels/us.m3u'
-            ];
-            
-            for(let url of urls) {
-                try {
-                    log(`Loading: ${url}`);
-                    const m3u = await fetchM3U(url);
-                    if(m3u) {
-                        parseM3U(m3u);
-                        log(`✅ ${channels.length} channels loaded!`);
-                        play(0);
-                        return;
-                    }
-                } catch(e) {
-                    log(`❌ ${url} failed`);
-                }
+        class IPTVPlayer {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.hls = null;
+                this.channels = [];
+                this.currentIndex = 0;
+                this.isPlaying = false;
+                this.hasInteracted = false;
+                
+                this.init();
             }
-            log('❌ All playlists failed');
-        }
-
-        // 🔥 CORS-FREE M3U FETCH
-        async function fetchM3U(url) {
-            const proxies = [
-                `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-                `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`
-            ];
             
-            for(let proxy of proxies) {
-                try {
-                    const res = await fetch(proxy, {cache: 'no-cache'});
-                    if(res.ok) {
-                        const data = await res.text();
-                        if(data.includes('#EXTINF')) return data;
-                    }
-                } catch(e) {}
+            async init() {
+                // Audio/Video setup
+                this.video.volume = 0.7;
+                this.video.addEventListener('loadedmetadata', () => {
+                    document.getElementById('status').textContent = 'Ready to play!';
+                });
+                
+                // User interaction unlock
+                ['click', 'touchstart'].forEach(event => {
+                    document.addEventListener(event, () => {
+                        if(!this.hasInteracted) {
+                            this.hasInteracted = true;
+                            this.video.muted = false;
+                            document.getElementById('muteBtn').textContent = '🔊';
+                        }
+                    }, {once: true});
+                });
+                
+                await this.loadPlaylist();
             }
-            return null;
-        }
-
-        function parseM3U(m3u) {
-            channels = [];
-            const lines = m3u.split('\n');
-            let current = null;
             
-            for(let line of lines) {
-                line = line.trim();
-                if(line.startsWith('#EXTINF:')) {
-                    const name = line.split(',').pop()?.replace(/[\n\r]/g,'') || 'Channel';
-                    current = {name: name.substring(0,50)};
-                } else if(line.startsWith('http') && current) {
-                    current.url = line;
-                    channels.push(current);
-                    current = null;
+            async loadPlaylist() {
+                document.getElementById('status').textContent = 'Loading channels...';
+                
+                try {
+                    const playlistUrl = document.getElementById('playlist').value;
+                    const response = await fetch(playlistUrl);
+                    const m3uContent = await response.text();
+                    
+                    this.parseM3U(m3uContent);
+                    this.updateChannelList();
+                    document.getElementById('status').textContent = `${this.channels.length} channels loaded!`;
+                    
+                } catch (error) {
+                    document.getElementById('status').textContent = 'Failed to load playlist';
+                    console.error('Playlist error:', error);
                 }
             }
             
-            document.getElementById('status').textContent = `${channels.length} channels ✓`;
-            showChannels();
-        }
-
-        function showChannels() {
-            const container = document.getElementById('channels');
-            if(channels.length === 0) {
-                container.innerHTML = '<div style="text-align:center;padding:20px;color:#666">No channels</div>';
-                return;
+            parseM3U(m3uContent) {
+                this.channels = [];
+                const lines = m3uContent.split('\n');
+                let currentChannel = null;
+                
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith('#EXTINF:')) {
+                        const nameMatch = line.match(/,(.+)$/);
+                        currentChannel = {
+                            name: nameMatch ? nameMatch[1].trim() : 'Unknown Channel',
+                            url: ''
+                        };
+                    } else if (line.startsWith('http') && currentChannel) {
+                        currentChannel.url = line;
+                        this.channels.push(currentChannel);
+                        currentChannel = null;
+                    }
+                }
             }
-            container.innerHTML = channels.slice(0,30).map((ch,i)=>`
-                <div class="channel ${i===currentIndex?'active':''}" onclick="play(${i})">
-                    ${ch.name}
-                </div>
-            `).join('');
-        }
-
-        async function play(index) {
-            if(index >= channels.length) return;
-            currentIndex = index;
-            const channel = channels[index];
-            showChannels();
-            document.getElementById('status').textContent = channel.name;
             
-            if(hasInteracted) video.muted = false;
+            updateChannelList() {
+                const container = document.getElementById('channel-list');
+                container.innerHTML = this.channels.slice(0, 20).map((channel, index) => `
+                    <div class="channel ${index === this.currentIndex ? 'active' : ''}" 
+                         onclick="player.playChannel(${index})">
+                        ${channel.name}
+                    </div>
+                `).join('');
+            }
             
-            try {
-                if(channel.url.includes('.m3u8') || channel.url.includes('.ts')) {
-                    hls.destroy();
-                    hls.loadSource(channel.url);
-                    hls.attachMedia(video);
+            async playChannel(index) {
+                if (index >= this.channels.length) return;
+                
+                this.currentIndex = index;
+                const channel = this.channels[index];
+                
+                document.getElementById('status').textContent = `Playing: ${channel.name}`;
+                this.updateChannelList();
+                
+                try {
+                    // Destroy previous HLS instance
+                    if (this.hls) {
+                        this.hls.destroy();
+                    }
+                    
+                    if (Hls.isSupported() && channel.url.includes('.m3u8')) {
+                        this.hls = new Hls({
+                            enableWorker: false,
+                            lowLatencyMode: true,
+                            backBufferLength: 0
+                        });
+                        this.hls.loadSource(channel.url);
+                        this.hls.attachMedia(this.video);
+                    } else {
+                        this.video.src = channel.url;
+                    }
+                    
+                    await this.video.play();
+                    this.isPlaying = true;
+                    document.getElementById('playBtn').textContent = '⏸️';
+                    
+                } catch (error) {
+                    document.getElementById('status').textContent = 'Stream failed';
+                }
+            }
+            
+            nextChannel() {
+                const nextIndex = (this.currentIndex + 1) % this.channels.length;
+                this.playChannel(nextIndex);
+            }
+            
+            previousChannel() {
+                const prevIndex = this.currentIndex === 0 ? 
+                    this.channels.length - 1 : this.currentIndex - 1;
+                this.playChannel(prevIndex);
+            }
+            
+            togglePlay() {
+                if (this.isPlaying) {
+                    this.video.pause();
+                    this.isPlaying = false;
+                    document.getElementById('playBtn').textContent = '▶️';
                 } else {
-                    video.src = channel.url;
+                    this.video.play();
+                    this.isPlaying = true;
+                    document.getElementById('playBtn').textContent = '⏸️';
                 }
-                await video.play();
-                isPlaying = true;
-                document.getElementById('playbtn').textContent = '⏸️';
-            } catch(e) {
-                document.getElementById('status').textContent = 'Stream failed';
+            }
+            
+            toggleMute() {
+                this.video.muted = !this.video.muted;
+                document.getElementById('muteBtn').textContent = 
+                    this.video.muted ? '🔇' : '🔊';
             }
         }
-
-        function playPause() {
-            if(isPlaying) {
-                video.pause();
-                isPlaying = false;
-                document.getElementById('playbtn').textContent = '▶️';
-            } else {
-                video.play();
-                isPlaying = true;
-                document.getElementById('playbtn').textContent = '⏸️';
-            }
-        }
-
-        function toggleMute() {
-            video.muted = !video.muted;
-            document.getElementById('mute').textContent = video.muted ? '🔇' : '🔊';
-        }
-
-        function prev() { play(Math.max(0, currentIndex-1)); }
-        function next() { play((currentIndex+1) % Math.max(1, channels.length)); }
-
-        // Controls
-        document.addEventListener('keydown', e=>{
-            if(!hasInteracted) return;
-            e.preventDefault();
-            if(e.code==='ArrowLeft') prev();
-            if(e.code==='ArrowRight') next();
-            if(e.code==='Space') playPause();
-        });
-
-        video.addEventListener('ended', ()=>next());
+        
+        // Global player instance
+        const player = new IPTVPlayer();
+        
+        // Global functions for onclick handlers
+        window.playChannel = (index) => player.playChannel(index);
+        window.nextChannel = () => player.nextChannel();
+        window.previousChannel = () => player.previousChannel();
+        window.togglePlay = () => player.togglePlay();
+        window.toggleMute = () => player.toggleMute();
     </script>
 </body>
 </html>
